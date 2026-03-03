@@ -1,0 +1,11 @@
+Vercel · JSON
+Copy
+
+{
+  "rewrites": [
+    {
+      "source": "/(.*)",
+      "destination": "/index.html"
+    }
+  ]
+}
