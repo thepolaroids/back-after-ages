@@ -1,3 +1,5 @@
+import { YoutubeTranscript } from 'youtube-transcript';
+
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
@@ -7,16 +9,16 @@ export default async function handler(req, res) {
 
   const { videoId, prompt } = req.body || {};
 
-  // ── MODE 1: Fetch transcript server-side (no CORS restrictions) ──
+  // MODE 1: Fetch transcript
   if (videoId && !prompt) {
     const transcript = await fetchTranscript(videoId);
     return res.status(200).json({ transcript });
   }
 
-  // ── MODE 2: Call Claude API ──
+  // MODE 2: Claude API
   if (prompt) {
     const apiKey = process.env.ANTHROPIC_KEY;
-    if (!apiKey) return res.status(500).json({ error: 'ANTHROPIC_KEY not configured in Vercel' });
+    if (!apiKey) return res.status(500).json({ error: 'ANTHROPIC_KEY not set' });
 
     const response = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
@@ -37,61 +39,44 @@ export default async function handler(req, res) {
     return res.status(200).json(data);
   }
 
-  return res.status(400).json({ error: 'Provide either videoId or prompt' });
+  return res.status(400).json({ error: 'Provide videoId or prompt' });
 }
 
-// ── TRANSCRIPT FETCHER ─────────────────────────────────────────────────────
 async function fetchTranscript(videoId) {
-  const HEADERS = {
-    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
-    'Accept-Language': 'en-US,en;q=0.9,hi;q=0.8',
-  };
+  // Try Hindi first, then English
+  const langGroups = [
+    { langs: ['hi'], label: 'hi' },
+    { langs: ['en'], label: 'en' },
+  ];
 
-  // Try captions in priority order: auto-generated Hindi, manual Hindi, English variants
-  const langs = ['a.hi', 'hi', 'hi-IN', 'a.en', 'en', 'en-US', 'en-GB'];
-
-  for (const lang of langs) {
+  for (const { langs, label } of langGroups) {
     try {
-      const url = `https://www.youtube.com/api/timedtext?lang=${lang}&v=${videoId}&fmt=json3`;
-      const res = await fetch(url, { headers: HEADERS });
-      if (!res.ok) continue;
+      const segments = await YoutubeTranscript.fetchTranscript(videoId, { lang: langs[0] });
+      if (!segments || segments.length < 5) continue;
 
-      const data = await res.json();
-      if (!data.events || data.events.length < 5) continue;
-
-      // Build timed transcript [MM:SS] text
-      const lines = data.events
-        .filter(e => e.segs && e.tStartMs != null)
-        .map(e => {
-          const secs = Math.floor(e.tStartMs / 1000);
-          const mm = Math.floor(secs / 60);
-          const ss = String(secs % 60).padStart(2, '0');
-          const text = e.segs.map(s => s.utf8 || '').join('').trim().replace(/\n/g, ' ');
-          return text ? `[${mm}:${ss}] ${text}` : null;
-        })
-        .filter(Boolean);
+      const lines = segments.map(s => {
+        const secs = Math.floor(s.offset / 1000);
+        const mm = Math.floor(secs / 60);
+        const ss = String(secs % 60).padStart(2, '0');
+        return `[${mm}:${ss}] ${s.text.trim().replace(/\n/g, ' ')}`;
+      }).filter(l => l.length > 10);
 
       if (lines.length > 10) {
-        return { type: 'timed', lang, text: lines.join('\n'), source: `captions (${lang})` };
+        return { type: 'timed', text: lines.join('\n'), source: `captions (${label})` };
       }
     } catch (e) { continue; }
   }
 
-  // Fallback: scrape page for title + description
+  // Fallback: scrape title + description
   try {
-    const res = await fetch(`https://www.youtube.com/watch?v=${videoId}`, { headers: HEADERS });
+    const res = await fetch(`https://www.youtube.com/watch?v=${videoId}`, {
+      headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36' }
+    });
     const html = await res.text();
-    const title = (html.match(/"title":"([^"]{5,200})"/) || [])[1];
-    const desc = (html.match(/"shortDescription":"([\s\S]{10,2000})"/) || [])[1];
-    const clean = s => s ? s.replace(/\\n/g, ' ').replace(/\\"/g, '"').replace(/\\u([\da-f]{4})/gi, (_, h) => String.fromCharCode(parseInt(h, 16))) : '';
-
-    if (title) {
-      return {
-        type: 'meta',
-        text: `TITLE: ${clean(title)}\nDESCRIPTION: ${clean(desc).slice(0, 1500)}`,
-        source: 'title+description'
-      };
-    }
+    const title = (html.match(/"title":"([^"]{5,200})"/) || [])[1] || '';
+    const desc  = (html.match(/"shortDescription":"([\s\S]{10,2000})"/) || [])[1] || '';
+    const clean = s => s.replace(/\\n/g,' ').replace(/\\"/g,'"').replace(/\\u([\da-f]{4})/gi,(_,h)=>String.fromCharCode(parseInt(h,16)));
+    if (title) return { type: 'meta', text: `TITLE: ${clean(title)}\nDESCRIPTION: ${clean(desc).slice(0,1500)}`, source: 'title+description' };
   } catch (e) {}
 
   return { type: 'none', text: null, source: 'unavailable' };
