@@ -1,0 +1,884 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Polaris · Video Intelligence</title>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,300;12..96,400;12..96,600;12..96,700;12..96,800&family=Lora:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet"/>
+<style>
+/* ── TOKENS ─────────────────────────────────────────────── */
+:root {
+  --ink:       #0a0d14;
+  --ink2:      #111520;
+  --ink3:      #181e2e;
+  --line:      #1e2a3e;
+  --line2:     #253145;
+  --sky:       #2f7cf6;
+  --sky-glow:  rgba(47,124,246,.18);
+  --aqua:      #19d4ca;
+  --lime:      #20c463;
+  --rose:      #f03e5e;
+  --amber:     #f0a419;
+  --violet:    #9d7ef5;
+  --paper:     #dde6f5;
+  --paper2:    #8fa4c4;
+  --paper3:    #3d5070;
+  --text-sm:   12px;
+  --text-base: 14px;
+  --text-md:   16px;
+  --text-lg:   20px;
+  --r-sm:      8px;
+  --r-md:      14px;
+  --r-lg:      20px;
+}
+
+/* ── RESET ───────────────────────────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { scroll-behavior: smooth; }
+body {
+  background: var(--ink);
+  color: var(--paper);
+  font-family: 'Bricolage Grotesque', sans-serif;
+  font-size: var(--text-base);
+  line-height: 1.6;
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+
+/* ── BACKGROUND ATMOSPHERE ──────────────────────────────── */
+body::before {
+  content: '';
+  position: fixed; inset: 0; pointer-events: none; z-index: 0;
+  background:
+    radial-gradient(ellipse 900px 600px at -10% -10%, rgba(47,124,246,.07) 0%, transparent 65%),
+    radial-gradient(ellipse 700px 500px at 110% 110%, rgba(25,212,202,.04) 0%, transparent 65%),
+    radial-gradient(ellipse 400px 400px at 50% 50%, rgba(10,13,20,0) 0%, rgba(10,13,20,.6) 100%);
+}
+
+/* ── LAYOUT ──────────────────────────────────────────────── */
+.wrap { position: relative; z-index: 1; max-width: 1100px; margin: 0 auto; padding: 0 24px 100px; }
+
+/* ── HEADER ─────────────────────────────────────────────── */
+.header { padding: 56px 0 44px; text-align: center; }
+
+.brand-tag {
+  display: inline-flex; align-items: center; gap: 8px;
+  font-size: 10px; font-weight: 700; letter-spacing: .18em; text-transform: uppercase;
+  color: var(--aqua); margin-bottom: 22px; opacity: .75;
+}
+.brand-tag::before, .brand-tag::after {
+  content: ''; flex-shrink: 0; width: 28px; height: 1px;
+  background: currentColor; opacity: .4;
+}
+
+.headline {
+  font-family: 'Lora', serif;
+  font-size: clamp(40px, 5.5vw, 68px);
+  font-weight: 400;
+  line-height: .95;
+  letter-spacing: -.025em;
+  color: var(--paper);
+  margin-bottom: 16px;
+}
+.headline em { font-style: italic; color: var(--aqua); }
+
+.subhead {
+  font-size: 15px; font-weight: 300; color: var(--paper2);
+  max-width: 440px; margin: 0 auto 32px; line-height: 1.75;
+}
+.subhead strong { color: var(--paper); font-weight: 600; }
+
+/* ── MODE TOGGLE ─────────────────────────────────────────── */
+.mode-toggle {
+  display: inline-flex;
+  background: var(--ink2);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 4px;
+  gap: 3px;
+  margin-bottom: 32px;
+}
+.mode-btn {
+  background: transparent; border: none;
+  padding: 9px 24px; border-radius: 9px;
+  color: var(--paper3); font-family: 'Bricolage Grotesque', sans-serif;
+  font-size: 13px; font-weight: 700; cursor: pointer; transition: all .2s;
+  letter-spacing: .01em;
+}
+.mode-btn.active {
+  background: var(--sky); color: #fff;
+  box-shadow: 0 0 0 1px rgba(47,124,246,.4), 0 4px 20px rgba(47,124,246,.3);
+}
+
+/* ── INPUT AREA ──────────────────────────────────────────── */
+.input-area { max-width: 760px; margin: 0 auto; }
+
+.input-card {
+  background: var(--ink2);
+  border: 1px solid var(--line);
+  border-radius: var(--r-lg);
+  padding: 22px;
+  margin-bottom: 10px;
+  transition: border-color .2s;
+}
+.input-card:focus-within { border-color: rgba(47,124,246,.5); }
+
+.input-card-label {
+  font-size: 10px; font-weight: 700; letter-spacing: .14em; text-transform: uppercase;
+  color: var(--paper3); margin-bottom: 12px;
+  display: flex; align-items: center; gap: 8px;
+}
+.v-badge {
+  width: 18px; height: 18px; border-radius: 4px; display: inline-flex;
+  align-items: center; justify-content: center;
+  font-size: 9px; font-weight: 800; flex-shrink: 0;
+}
+.v-badge.a { background: rgba(47,124,246,.2); color: #93c5fd; }
+.v-badge.b { background: rgba(240,164,25,.2); color: #fcd34d; }
+
+.input-row { display: flex; gap: 10px; }
+.text-input {
+  flex: 1; background: var(--ink3); border: 1px solid var(--line2);
+  border-radius: 10px; padding: 12px 16px;
+  color: var(--paper); font-family: 'Bricolage Grotesque', sans-serif; font-size: 13px;
+  outline: none; transition: border-color .2s;
+}
+.text-input::placeholder { color: var(--paper3); }
+.text-input:focus { border-color: rgba(47,124,246,.6); }
+
+.go-btn {
+  background: var(--sky); border: none; border-radius: 10px;
+  padding: 0 22px; height: 44px;
+  color: #fff; font-family: 'Bricolage Grotesque', sans-serif;
+  font-size: 13px; font-weight: 700; cursor: pointer;
+  white-space: nowrap; transition: all .2s;
+  display: inline-flex; align-items: center; gap: 6px;
+}
+.go-btn:hover { background: #1d6aee; box-shadow: 0 6px 24px rgba(47,124,246,.4); }
+.go-btn:disabled { opacity: .35; cursor: not-allowed; box-shadow: none; }
+
+.compare-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 10px; }
+.compare-go-wrap .go-btn {
+  width: 100%; height: 48px; justify-content: center;
+  font-size: 14px; border-radius: 12px; max-width: 760px; margin: 0 auto; display: flex;
+}
+
+/* ── ERROR BOX ───────────────────────────────────────────── */
+.err-box {
+  display: none; max-width: 760px; margin: 0 auto 14px;
+  background: rgba(240,62,94,.07); border: 1px solid rgba(240,62,94,.22);
+  border-radius: 10px; padding: 12px 16px;
+  color: #fca5b4; font-size: 13px; line-height: 1.5;
+}
+.err-box.on { display: block; }
+
+/* ── LOADER ──────────────────────────────────────────────── */
+.loader { display: none; text-align: center; padding: 72px 0; }
+.loader.on { display: block; }
+
+.orbit {
+  width: 52px; height: 52px; margin: 0 auto 24px; position: relative;
+}
+.orbit-ring {
+  position: absolute; inset: 0; border-radius: 50%;
+  border: 2px solid transparent;
+  animation: spin 1s linear infinite;
+}
+.orbit-ring:nth-child(1) { border-top-color: var(--sky); }
+.orbit-ring:nth-child(2) { inset: 9px; border-top-color: var(--aqua); animation-duration: .65s; animation-direction: reverse; }
+.orbit-ring:nth-child(3) { inset: 18px; border-top-color: var(--violet); animation-duration: 1.5s; }
+@keyframes spin { to { transform: rotate(360deg); } }
+
+.loader-hed { font-size: 17px; font-weight: 600; margin-bottom: 5px; }
+.loader-sub { font-size: 13px; color: var(--paper2); margin-bottom: 24px; }
+
+.step-list { display: inline-flex; flex-direction: column; gap: 7px; text-align: left; }
+.step-row {
+  display: flex; align-items: center; gap: 9px;
+  font-size: 12px; font-weight: 500; color: var(--paper3); transition: color .35s;
+}
+.step-row.active { color: var(--paper); }
+.step-row.done { color: var(--lime); }
+.step-pip { width: 5px; height: 5px; border-radius: 50%; background: currentColor; flex-shrink: 0; }
+
+/* ── RESULTS ─────────────────────────────────────────────── */
+.results, .cmp-results { display: none; }
+.results.on, .cmp-results.on { display: block; animation: rise .5s ease; }
+@keyframes rise { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: translateY(0); } }
+
+/* Video meta strip */
+.vid-strip {
+  background: var(--ink2); border: 1px solid var(--line);
+  border-radius: var(--r-lg); padding: 18px 22px;
+  display: flex; gap: 16px; align-items: center; margin-bottom: 12px;
+}
+.vid-thumb {
+  width: 112px; height: 63px; border-radius: var(--r-sm);
+  object-fit: cover; background: var(--ink3); flex-shrink: 0;
+}
+.vid-info { flex: 1; min-width: 0; }
+.vid-title {
+  font-family: 'Lora', serif; font-size: 18px;
+  line-height: 1.3; margin-bottom: 4px;
+}
+.vid-chan { font-size: 12px; color: var(--paper2); }
+.src-pill {
+  display: inline-flex; align-items: center; gap: 5px;
+  margin-top: 7px; font-size: 10px; font-weight: 700;
+  letter-spacing: .07em; text-transform: uppercase;
+  padding: 3px 9px; border-radius: 5px; border: 1px solid;
+}
+.src-pill.ok { color: #86efac; border-color: rgba(34,197,94,.3); background: rgba(34,197,94,.08); }
+.src-pill.warn { color: #fcd34d; border-color: rgba(240,164,25,.3); background: rgba(240,164,25,.08); }
+.src-pill.err { color: #fca5b4; border-color: rgba(240,62,94,.3); background: rgba(240,62,94,.08); }
+
+/* Score row */
+.scores { display: grid; grid-template-columns: repeat(3,1fr); gap: 10px; margin-bottom: 12px; }
+.score-tile {
+  background: var(--ink2); border: 1px solid var(--line);
+  border-radius: var(--r-md); padding: 20px 14px; text-align: center;
+  position: relative; overflow: hidden;
+}
+.score-tile::after {
+  content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px;
+}
+.score-tile.s1::after { background: linear-gradient(90deg, var(--sky), var(--aqua)); }
+.score-tile.s2::after { background: linear-gradient(90deg, #e879f9, #f59e0b); }
+.score-tile.s3::after { background: linear-gradient(90deg, var(--lime), var(--aqua)); }
+.score-val {
+  font-family: 'Lora', serif;
+  font-size: 40px; line-height: 1; margin-bottom: 5px;
+}
+.score-tile.s1 .score-val { color: var(--aqua); }
+.score-tile.s2 .score-val { color: #f0abfc; }
+.score-tile.s3 .score-val { color: var(--lime); }
+.score-lbl {
+  font-size: 10px; font-weight: 700; letter-spacing: .1em;
+  text-transform: uppercase; color: var(--paper3);
+}
+
+/* Cards */
+.card {
+  background: var(--ink2); border: 1px solid var(--line);
+  border-radius: var(--r-lg); padding: 22px; margin-bottom: 12px;
+}
+.card-hed {
+  font-size: 10px; font-weight: 700; letter-spacing: .14em; text-transform: uppercase;
+  color: var(--paper3); margin-bottom: 16px;
+  display: flex; align-items: center; gap: 9px;
+}
+.hed-icon {
+  width: 22px; height: 22px; border-radius: 5px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 11px; flex-shrink: 0;
+}
+.hi-sky    { background: rgba(47,124,246,.15); }
+.hi-lime   { background: rgba(32,196,99,.15); }
+.hi-rose   { background: rgba(240,62,94,.15); }
+.hi-violet { background: rgba(157,126,245,.15); }
+.hi-aqua   { background: rgba(25,212,202,.15); }
+.hi-amber  { background: rgba(240,164,25,.15); }
+
+.verdict-body { font-size: 14px; line-height: 1.8; color: #a8bcd8; }
+
+/* Clusters */
+.clusters { display: flex; flex-direction: column; gap: 10px; }
+.cluster {
+  background: var(--ink3); border: 1px solid var(--line2);
+  border-radius: 12px; padding: 14px 16px;
+}
+.cluster-top { display: flex; align-items: center; gap: 8px; margin-bottom: 7px; flex-wrap: wrap; }
+.cluster-name { font-size: 13px; font-weight: 700; }
+.sent-tag {
+  font-size: 9px; font-weight: 800; letter-spacing: .07em; text-transform: uppercase;
+  padding: 3px 8px; border-radius: 100px; border: 1px solid;
+}
+.sent-tag.positive { color: var(--lime);  border-color: rgba(32,196,99,.35);  background: rgba(32,196,99,.08); }
+.sent-tag.negative { color: var(--rose);  border-color: rgba(240,62,94,.35);  background: rgba(240,62,94,.08); }
+.sent-tag.neutral  { color: var(--paper2); border-color: rgba(143,164,196,.3); background: rgba(143,164,196,.06); }
+.sent-tag.mixed    { color: var(--amber); border-color: rgba(240,164,25,.35); background: rgba(240,164,25,.08); }
+.cluster-body { font-size: 13px; line-height: 1.65; color: var(--paper2); }
+
+/* Emotion */
+.emotion-tags { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 11px; }
+.etag {
+  padding: 5px 13px; border-radius: 100px;
+  font-size: 12px; font-weight: 500; border: 1px solid;
+}
+.etag.st { color: var(--violet); border-color: rgba(157,126,245,.3); background: rgba(157,126,245,.08); }
+.etag.pa { color: var(--aqua);   border-color: rgba(25,212,202,.3);  background: rgba(25,212,202,.08); }
+.emotion-narr { font-size: 13px; line-height: 1.75; color: var(--paper2); }
+
+/* Positives / Negatives */
+.pn-list { display: flex; flex-direction: column; gap: 10px; }
+.pn-item { border-radius: 10px; padding: 13px 15px; }
+.pn-item.pos { background: rgba(32,196,99,.05);  border: 1px solid rgba(32,196,99,.18); }
+.pn-item.neg { background: rgba(240,62,94,.05);  border: 1px solid rgba(240,62,94,.18); }
+.pn-head { display: flex; align-items: flex-start; gap: 9px; margin-bottom: 0; }
+.pn-ico { font-size: 11px; font-weight: 900; margin-top: 2px; flex-shrink: 0; }
+.pn-item.pos .pn-ico { color: var(--lime); }
+.pn-item.neg .pn-ico { color: var(--rose); }
+.pn-point { font-size: 13px; color: var(--paper); line-height: 1.55; flex: 1; font-weight: 500; }
+.pn-quote {
+  margin-top: 8px; margin-left: 20px;
+  font-family: 'Lora', serif; font-style: italic;
+  font-size: 12.5px; line-height: 1.65; color: var(--paper2);
+  border-left: 2px solid rgba(143,164,196,.2); padding-left: 11px;
+}
+.pn-footer { display: flex; align-items: center; gap: 8px; margin-top: 8px; margin-left: 20px; }
+
+/* Timestamp link */
+.ts-link {
+  display: inline-flex; align-items: center; gap: 4px;
+  background: rgba(47,124,246,.1); border: 1px solid rgba(47,124,246,.25);
+  border-radius: 5px; padding: 2px 9px;
+  font-size: 11px; font-weight: 700; color: var(--aqua);
+  text-decoration: none; transition: background .15s;
+}
+.ts-link::before { content: '▶'; font-size: 7px; }
+.ts-link:hover { background: rgba(47,124,246,.2); }
+
+/* Recommendation */
+.reco {
+  margin-top: 18px;
+  background: rgba(240,164,25,.04); border: 1px solid rgba(240,164,25,.16);
+  border-radius: 10px; padding: 14px 16px;
+}
+.reco-lbl {
+  font-size: 10px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase;
+  color: var(--amber); margin-bottom: 6px;
+}
+.reco-body { font-size: 13px; line-height: 1.75; color: #a8bcd8; }
+
+/* Section divider within card */
+.sec-gap { margin-top: 20px; }
+
+/* ── COMPARE ─────────────────────────────────────────────── */
+.cmp-vids { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 12px; }
+.cmp-vid {
+  background: var(--ink2); border: 1px solid var(--line);
+  border-radius: 14px; padding: 14px 16px;
+  display: flex; gap: 12px; align-items: center;
+}
+.cmp-vid.a { border-top: 2px solid var(--sky); }
+.cmp-vid.b { border-top: 2px solid var(--amber); }
+.cmp-thumb { width: 76px; height: 43px; border-radius: 6px; object-fit: cover; background: var(--ink3); flex-shrink: 0; }
+.cmp-title { font-size: 12px; font-weight: 600; line-height: 1.3; margin-bottom: 2px; }
+.cmp-chan { font-size: 11px; color: var(--paper2); }
+
+.cmp-scores { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 12px; }
+.mini-score-row { display: grid; grid-template-columns: repeat(3,1fr); gap: 6px; }
+.mini-tile {
+  background: var(--ink2); border: 1px solid var(--line);
+  border-radius: 10px; padding: 13px 8px; text-align: center;
+  position: relative; overflow: hidden;
+}
+.mini-tile::after { content:''; position:absolute; top:0; left:0; right:0; height:2px; }
+.mini-tile.s1::after { background: linear-gradient(90deg,var(--sky),var(--aqua)); }
+.mini-tile.s2::after { background: linear-gradient(90deg,#e879f9,#f59e0b); }
+.mini-tile.s3::after { background: linear-gradient(90deg,var(--lime),var(--aqua)); }
+.mini-val { font-family: 'Lora', serif; font-size: 24px; line-height: 1; margin-bottom: 3px; }
+.mini-tile.s1 .mini-val { color: var(--aqua); }
+.mini-tile.s2 .mini-val { color: #f0abfc; }
+.mini-tile.s3 .mini-val { color: var(--lime); }
+.mini-lbl { font-size: 9px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--paper3); }
+
+.vs-row {
+  display: flex; align-items: center; gap: 10px;
+  font-size: 10px; font-weight: 800; letter-spacing: .18em; text-transform: uppercase;
+  color: var(--paper3); margin: 6px 0 10px;
+}
+.vs-row::before, .vs-row::after { content: ''; flex: 1; height: 1px; background: var(--line); }
+
+.cmp-pair { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 12px; }
+
+.back-btn {
+  display: block; margin: 24px auto 0;
+  background: transparent; border: 1px solid var(--line2);
+  border-radius: 9px; padding: 9px 24px;
+  color: var(--paper2); font-family: 'Bricolage Grotesque', sans-serif;
+  font-size: 13px; font-weight: 500; cursor: pointer; transition: all .2s;
+}
+.back-btn:hover { border-color: var(--sky); color: var(--paper); }
+
+@media (max-width: 700px) {
+  .compare-grid, .cmp-vids, .cmp-scores, .cmp-pair { grid-template-columns: 1fr; }
+  .scores { grid-template-columns: repeat(3, 1fr); }
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <!-- HEADER -->
+  <header class="header">
+    <div class="brand-tag">Polaris School of Technology</div>
+    <h1 class="headline">Video<br><em>Intelligence</em></h1>
+    <p class="subhead">Analyse any YouTube video to understand how it shapes perception of <strong>Polaris</strong> — grounded in the actual transcript.</p>
+    <div class="mode-toggle">
+      <button class="mode-btn active" id="btnSingle" onclick="setMode('single')">▶ Single Video</button>
+      <button class="mode-btn" id="btnCompare" onclick="setMode('compare')">⇔ Compare Two</button>
+    </div>
+  </header>
+
+  <!-- ERROR -->
+  <div class="err-box" id="errBox"></div>
+
+  <!-- SINGLE INPUT -->
+  <div id="zoneSingle" class="input-area">
+    <div class="input-card">
+      <div class="input-card-label">YouTube Video URL</div>
+      <div class="input-row">
+        <input class="text-input" id="urlSingle" type="text" placeholder="https://www.youtube.com/watch?v=..."/>
+        <button class="go-btn" id="btnGo" onclick="runSingle()">Analyse →</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- COMPARE INPUT -->
+  <div id="zoneCompare" class="input-area" style="display:none">
+    <div class="compare-grid">
+      <div class="input-card" style="border-top: 2px solid var(--sky)">
+        <div class="input-card-label"><span class="v-badge a">A</span> Video A</div>
+        <input class="text-input" id="urlA" type="text" placeholder="https://www.youtube.com/watch?v=..."/>
+      </div>
+      <div class="input-card" style="border-top: 2px solid var(--amber)">
+        <div class="input-card-label"><span class="v-badge b">B</span> Video B</div>
+        <input class="text-input" id="urlB" type="text" placeholder="https://www.youtube.com/watch?v=..."/>
+      </div>
+    </div>
+    <div class="compare-go-wrap input-area">
+      <button class="go-btn" id="btnCmpGo" onclick="runCompare()">Compare Both Videos →</button>
+    </div>
+  </div>
+
+  <!-- LOADER -->
+  <div class="loader" id="loader">
+    <div class="orbit">
+      <div class="orbit-ring"></div>
+      <div class="orbit-ring"></div>
+      <div class="orbit-ring"></div>
+    </div>
+    <div class="loader-hed" id="loaderHed">Analysing Video</div>
+    <div class="loader-sub">Usually takes 20–30 seconds</div>
+    <div class="step-list">
+      <div class="step-row" id="st1"><span class="step-pip"></span>Step 1 — Fetching transcript</div>
+      <div class="step-row" id="st2"><span class="step-pip"></span>Step 2 — Clustering Polaris mentions</div>
+      <div class="step-row" id="st3"><span class="step-pip"></span>Step 3 — Sentiment analysis</div>
+      <div class="step-row" id="st4"><span class="step-pip"></span>Step 4 — Positives &amp; negatives</div>
+    </div>
+  </div>
+
+  <!-- SINGLE RESULTS -->
+  <div class="results" id="resSingle">
+    <div class="vid-strip" id="vidMeta"></div>
+    <div class="scores" id="scoreRow"></div>
+    <div class="card" id="cardVerdict"></div>
+    <div class="card" id="cardClusters"></div>
+    <div class="card" id="cardStudent"></div>
+    <div class="card" id="cardParent"></div>
+    <div class="card" id="cardPosNeg"></div>
+    <button class="back-btn" onclick="goBack()">← Analyse another video</button>
+  </div>
+
+  <!-- COMPARE RESULTS -->
+  <div class="cmp-results" id="resCmp"></div>
+
+</div><!-- /wrap -->
+<script>
+// ─────────────────────────────────────────────────────────────
+// UTILITIES
+// ─────────────────────────────────────────────────────────────
+const $ = id => document.getElementById(id);
+
+function esc(s) {
+  return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+function parseVideoId(url) {
+  url = (url || '').split('#')[0].trim();
+  const m = url.match(/(?:youtube\.com\/(?:watch\?(?:.*&)?v=|shorts\/|embed\/)|youtu\.be\/)([a-zA-Z0-9_-]{11})/);
+  return m ? m[1] : null;
+}
+
+function tsHref(vid, ts) {
+  if (!ts || ts === 'null') return '';
+  const p = String(ts).split(':');
+  const secs = p.length === 2 ? +p[0] * 60 + +p[1] : +p[0];
+  if (isNaN(secs) || secs < 0) return '';
+  return `<a class="ts-link" href="https://www.youtube.com/watch?v=${vid}&t=${secs}" target="_blank">${ts}</a>`;
+}
+
+function sentTag(s) {
+  const c = ['positive','negative','neutral','mixed'].includes(s) ? s : 'neutral';
+  return `<span class="sent-tag ${c}">${c}</span>`;
+}
+
+function srcPill(src) {
+  if (!src || src === 'unavailable')
+    return `<span class="src-pill err">⚠ No transcript — may be inaccurate</span>`;
+  if (src.startsWith('captions'))
+    return `<span class="src-pill ok">📄 ${esc(src)}</span>`;
+  return `<span class="src-pill warn">📋 ${esc(src)}</span>`;
+}
+
+function setStep(n) {
+  for (let i = 1; i <= 4; i++) {
+    $('st' + i).className = 'step-row' + (i < n ? ' done' : i === n ? ' active' : '');
+  }
+}
+
+function showErr(msg) { const b = $('errBox'); b.textContent = msg; b.classList.add('on'); }
+function hideErr()    { $('errBox').classList.remove('on'); }
+
+function setMode(m) {
+  $('btnSingle').classList.toggle('active', m === 'single');
+  $('btnCompare').classList.toggle('active', m === 'compare');
+  $('zoneSingle').style.display = m === 'single' ? '' : 'none';
+  $('zoneCompare').style.display = m === 'compare' ? '' : 'none';
+  $('resSingle').classList.remove('on');
+  $('resCmp').classList.remove('on');
+  hideErr();
+}
+
+function goBack() {
+  $('resSingle').classList.remove('on');
+  $('resCmp').classList.remove('on');
+  ['urlSingle','urlA','urlB'].forEach(id => { const el = $(id); if (el) el.value = ''; });
+  hideErr();
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+// ─────────────────────────────────────────────────────────────
+// API
+// ─────────────────────────────────────────────────────────────
+async function getTranscript(videoId) {
+  try {
+    const r = await fetch('/api/analyse', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ videoId })
+    });
+    if (!r.ok) return { type: 'none', source: 'unavailable' };
+    const d = await r.json();
+    return d.transcript || { type: 'none', source: 'unavailable' };
+  } catch { return { type: 'none', source: 'unavailable' }; }
+}
+
+async function callClaude(prompt) {
+  const r = await fetch('/api/analyse', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ prompt })
+  });
+  if (!r.ok) { const e = await r.json(); throw new Error(e.error || `Server error ${r.status}`); }
+  const d = await r.json();
+  const raw = d.content.map(b => b.text || '').join('').replace(/```json[\s\S]*?```|```/g, c => c.replace(/```json|```/g, '')).trim();
+  return JSON.parse(raw);
+}
+
+function buildPrompt(videoId, url, transcript) {
+  let ctx;
+  if (transcript.type === 'timed') {
+    ctx = `FULL TRANSCRIPT with timestamps [MM:SS] — language may be Hindi, English, or mixed:\n"""\n${transcript.text.slice(0, 9000)}\n"""\nThis is the ACTUAL spoken content. Translate Hindi sections. Cite exact timestamps and quotes from the transcript.`;
+  } else if (transcript.type === 'meta') {
+    ctx = `Only title/description available — no spoken transcript:\n"""\n${transcript.text}\n"""\nAnalyse what you can. Note the limitation.`;
+  } else {
+    ctx = `No transcript available. Use your knowledge of video ID ${videoId}. Do NOT fabricate quotes or timestamps.`;
+  }
+
+  return `You are a brand intelligence analyst for Polaris School of Technology — a 4-year CS undergrad in Bangalore, India, positioning as India's best all-round CS program.
+
+Video: ${url}
+Video ID: ${videoId}
+
+${ctx}
+
+ANALYSIS LENS: How does a prospective STUDENT or PARENT perceive Polaris after watching this?
+
+Return ONLY valid JSON. No preamble, no markdown fences.
+
+{
+  "videoTitle": "string",
+  "channelName": "string",
+  "scores": {
+    "brandSignal": 0-10,
+    "emotionalPull": 0-10,
+    "perceptionValue": 0-10
+  },
+  "overallVerdict": "2-3 sentences: what does this video do for Polaris perception overall?",
+  "clusters": [
+    {
+      "theme": "3-5 word label e.g. 'Internship Placement Stats'",
+      "summary": "what was said about this topic and what it signals to a Polaris viewer",
+      "sentiment": "positive|negative|neutral|mixed",
+      "timestamp": "MM:SS or null"
+    }
+  ],
+  "studentSentiment": {
+    "tags": ["visceral 1-2 word emotion", "emotion2", "emotion3", "emotion4"],
+    "narrative": "2 sentences on how a prospective student feels about Polaris after watching"
+  },
+  "parentSentiment": {
+    "tags": ["emotion1", "emotion2", "emotion3", "emotion4"],
+    "narrative": "2 sentences on how a parent feels about Polaris after watching"
+  },
+  "positives": [
+    {
+      "point": "specific positive thing this video signals about Polaris",
+      "quote": "EXACT words from transcript — transliterate Hindi if needed — or null",
+      "timestamp": "MM:SS or null"
+    }
+  ],
+  "negatives": [
+    {
+      "point": "specific concern or negative signal for Polaris perception",
+      "quote": "EXACT words from transcript or null",
+      "timestamp": "MM:SS or null"
+    }
+  ],
+  "recommendation": "2-3 sentences: how should Polaris use or respond to this video?"
+}
+
+Rules:
+- clusters: identify 3–6 distinct Polaris-relevant themes from the video
+- quotes: pull EXACT words from the transcript — this is the most valuable output
+- timestamps: only MM:SS when you can pin the exact moment; otherwise null
+- sentiment tags: short, visceral (e.g. "inspired", "skeptical", "relieved", "proud")
+- Be specific. Generic observations are worthless.`;
+}
+
+async function analyseVideo(videoId, url) {
+  const transcript = await getTranscript(videoId);
+  const analysis = await callClaude(buildPrompt(videoId, url, transcript));
+  return { analysis, source: transcript.source };
+}
+
+// ─────────────────────────────────────────────────────────────
+// RENDER
+// ─────────────────────────────────────────────────────────────
+function renderMeta(a, vid, src) {
+  return `
+    <img class="vid-thumb" src="https://img.youtube.com/vi/${vid}/mqdefault.jpg" onerror="this.style.display='none'"/>
+    <div class="vid-info">
+      <div class="vid-title">${esc(a.videoTitle)}</div>
+      <div class="vid-chan">${esc(a.channelName)}</div>
+      ${srcPill(src)}
+    </div>`;
+}
+
+function renderScores(s, mini = false) {
+  s = s || {};
+  if (mini) return `
+    <div class="mini-tile s1"><div class="mini-val">${s.brandSignal ?? '–'}</div><div class="mini-lbl">Brand</div></div>
+    <div class="mini-tile s2"><div class="mini-val">${s.emotionalPull ?? '–'}</div><div class="mini-lbl">Emotion</div></div>
+    <div class="mini-tile s3"><div class="mini-val">${s.perceptionValue ?? '–'}</div><div class="mini-lbl">Perception</div></div>`;
+  return `
+    <div class="score-tile s1"><div class="score-val">${s.brandSignal ?? '–'}/10</div><div class="score-lbl">Brand Signal</div></div>
+    <div class="score-tile s2"><div class="score-val">${s.emotionalPull ?? '–'}/10</div><div class="score-lbl">Emotional Pull</div></div>
+    <div class="score-tile s3"><div class="score-val">${s.perceptionValue ?? '–'}/10</div><div class="score-lbl">Perception Value</div></div>`;
+}
+
+function renderVerdict(a) {
+  return `<div class="card-hed"><span class="hed-icon hi-sky">⭐</span>Overall Verdict</div>
+    <div class="verdict-body">${esc(a.overallVerdict)}</div>`;
+}
+
+function renderClusters(a, vid) {
+  const items = (a.clusters || []).map(c => `
+    <div class="cluster">
+      <div class="cluster-top">
+        <span class="cluster-name">${esc(c.theme)}</span>
+        ${sentTag(c.sentiment)}
+        ${vid && c.timestamp ? tsHref(vid, c.timestamp) : ''}
+      </div>
+      <div class="cluster-body">${esc(c.summary)}</div>
+    </div>`).join('');
+  return `<div class="card-hed"><span class="hed-icon hi-sky">◈</span>Polaris Mention Clusters</div>
+    <div class="clusters">${items || '<div class="cluster-body" style="color:var(--paper3)">No specific Polaris mentions found</div>'}</div>`;
+}
+
+function renderEmotion(data, tagCls, title, icon, iconCls, noTitle = false) {
+  if (!data) return '';
+  const tags = (data.tags || []).map(t => `<span class="etag ${tagCls}">${esc(t)}</span>`).join('');
+  const hed = noTitle ? '' : `<div class="card-hed"><span class="hed-icon ${iconCls}">${icon}</span>${title}</div>`;
+  return `${hed}<div class="emotion-tags">${tags}</div><div class="emotion-narr">${esc(data.narrative || '')}</div>`;
+}
+
+function renderPosNeg(a, vid) {
+  const pos = (a.positives || []).map(item => `
+    <div class="pn-item pos">
+      <div class="pn-head">
+        <span class="pn-ico">✓</span>
+        <span class="pn-point">${esc(item.point)}</span>
+      </div>
+      ${item.quote && item.quote !== 'null' ? `<div class="pn-quote">${esc(item.quote)}</div>` : ''}
+      <div class="pn-footer">${vid && item.timestamp ? tsHref(vid, item.timestamp) : ''}</div>
+    </div>`).join('');
+
+  const neg = (a.negatives || []).map(item => `
+    <div class="pn-item neg">
+      <div class="pn-head">
+        <span class="pn-ico">✗</span>
+        <span class="pn-point">${esc(item.point)}</span>
+      </div>
+      ${item.quote && item.quote !== 'null' ? `<div class="pn-quote">${esc(item.quote)}</div>` : ''}
+      <div class="pn-footer">${vid && item.timestamp ? tsHref(vid, item.timestamp) : ''}</div>
+    </div>`).join('');
+
+  const empty = '<div class="cluster-body" style="color:var(--paper3);padding:4px 0">None identified</div>';
+  const reco = a.recommendation
+    ? `<div class="reco sec-gap"><div class="reco-lbl">💡 Recommendation</div><div class="reco-body">${esc(a.recommendation)}</div></div>`
+    : '';
+
+  return `
+    <div class="card-hed"><span class="hed-icon hi-lime">✓</span>What Works for Polaris</div>
+    <div class="pn-list">${pos || empty}</div>
+    <div class="card-hed sec-gap"><span class="hed-icon hi-rose">✗</span>What Could Hurt Polaris</div>
+    <div class="pn-list">${neg || empty}</div>
+    ${reco}`;
+}
+
+// ─────────────────────────────────────────────────────────────
+// SINGLE FLOW
+// ─────────────────────────────────────────────────────────────
+async function runSingle() {
+  hideErr();
+  const url = $('urlSingle').value.trim();
+  if (!url) { showErr('Paste a YouTube URL to get started.'); return; }
+  const vid = parseVideoId(url);
+  if (!vid) { showErr('Could not find a video ID in that URL. Check it and try again.'); return; }
+
+  $('btnGo').disabled = true;
+  $('resSingle').classList.remove('on');
+  $('loaderHed').textContent = 'Analysing Video';
+  $('loader').classList.add('on');
+  setStep(1);
+
+  const t2 = setTimeout(() => setStep(2), 5000);
+  const t3 = setTimeout(() => setStep(3), 12000);
+  const t4 = setTimeout(() => setStep(4), 20000);
+
+  try {
+    const { analysis: a, source } = await analyseVideo(vid, url);
+    [t2, t3, t4].forEach(clearTimeout);
+    setStep(4);
+    await new Promise(r => setTimeout(r, 400));
+
+    $('vidMeta').innerHTML   = renderMeta(a, vid, source);
+    $('scoreRow').innerHTML  = renderScores(a.scores);
+    $('cardVerdict').innerHTML  = renderVerdict(a);
+    $('cardClusters').innerHTML = renderClusters(a, vid);
+    $('cardStudent').innerHTML  = renderEmotion(a.studentSentiment, 'st', 'How Students Would Feel', '🎓', 'hi-violet');
+    $('cardParent').innerHTML   = renderEmotion(a.parentSentiment,  'pa', 'How Parents Would Feel',  '👨‍👩‍👧', 'hi-aqua');
+    $('cardPosNeg').innerHTML   = renderPosNeg(a, vid);
+
+    $('loader').classList.remove('on');
+    $('resSingle').classList.add('on');
+    window.scrollTo({ top: $('resSingle').offsetTop - 20, behavior: 'smooth' });
+  } catch (e) {
+    showErr('Analysis failed: ' + e.message);
+    $('loader').classList.remove('on');
+  } finally {
+    $('btnGo').disabled = false;
+  }
+}
+
+// ─────────────────────────────────────────────────────────────
+// COMPARE FLOW
+// ─────────────────────────────────────────────────────────────
+async function runCompare() {
+  hideErr();
+  const urlA = $('urlA').value.trim(), urlB = $('urlB').value.trim();
+  if (!urlA || !urlB) { showErr('Paste URLs for both videos.'); return; }
+  const idA = parseVideoId(urlA), idB = parseVideoId(urlB);
+  if (!idA) { showErr('Could not parse a video ID from Video A.'); return; }
+  if (!idB) { showErr('Could not parse a video ID from Video B.'); return; }
+
+  $('btnCmpGo').disabled = true;
+  $('resCmp').classList.remove('on');
+  $('loaderHed').textContent = 'Analysing Both Videos';
+  $('loader').classList.add('on');
+  setStep(1);
+
+  const t2 = setTimeout(() => setStep(2), 6000);
+  const t3 = setTimeout(() => setStep(3), 14000);
+  const t4 = setTimeout(() => setStep(4), 24000);
+
+  try {
+    const [rA, rB] = await Promise.all([analyseVideo(idA, urlA), analyseVideo(idB, urlB)]);
+    const { analysis: a, source: sA } = rA;
+    const { analysis: b, source: sB } = rB;
+    [t2, t3, t4].forEach(clearTimeout);
+    setStep(4);
+    await new Promise(r => setTimeout(r, 400));
+
+    $('resCmp').innerHTML = `
+      <div class="cmp-vids">
+        <div class="cmp-vid a">
+          <img class="cmp-thumb" src="https://img.youtube.com/vi/${idA}/mqdefault.jpg" onerror="this.style.display='none'"/>
+          <div><div class="cmp-title">${esc(a.videoTitle)}</div><div class="cmp-chan">${esc(a.channelName)}</div>${srcPill(sA)}</div>
+        </div>
+        <div class="cmp-vid b">
+          <img class="cmp-thumb" src="https://img.youtube.com/vi/${idB}/mqdefault.jpg" onerror="this.style.display='none'"/>
+          <div><div class="cmp-title">${esc(b.videoTitle)}</div><div class="cmp-chan">${esc(b.channelName)}</div>${srcPill(sB)}</div>
+        </div>
+      </div>
+
+      <div class="cmp-scores">
+        <div class="mini-score-row">${renderScores(a.scores, true)}</div>
+        <div class="mini-score-row">${renderScores(b.scores, true)}</div>
+      </div>
+
+      <div class="vs-row">Overall Verdict</div>
+      <div class="cmp-pair">
+        <div class="card"><div class="verdict-body">${esc(a.overallVerdict)}</div></div>
+        <div class="card"><div class="verdict-body">${esc(b.overallVerdict)}</div></div>
+      </div>
+
+      <div class="vs-row">Polaris Mention Clusters</div>
+      <div class="cmp-pair">
+        <div class="card">${renderClusters(a, idA)}</div>
+        <div class="card">${renderClusters(b, idB)}</div>
+      </div>
+
+      <div class="vs-row">How Students Would Feel</div>
+      <div class="cmp-pair">
+        <div class="card">${renderEmotion(a.studentSentiment,'st','','🎓','hi-violet',true)}</div>
+        <div class="card">${renderEmotion(b.studentSentiment,'st','','🎓','hi-violet',true)}</div>
+      </div>
+
+      <div class="vs-row">How Parents Would Feel</div>
+      <div class="cmp-pair">
+        <div class="card">${renderEmotion(a.parentSentiment,'pa','','👨‍👩‍👧','hi-aqua',true)}</div>
+        <div class="card">${renderEmotion(b.parentSentiment,'pa','','👨‍👩‍👧','hi-aqua',true)}</div>
+      </div>
+
+      <div class="vs-row">Positives &amp; Negatives</div>
+      <div class="cmp-pair">
+        <div class="card">${renderPosNeg(a, idA)}</div>
+        <div class="card">${renderPosNeg(b, idB)}</div>
+      </div>
+
+      <button class="back-btn" onclick="goBack()">← Start over</button>`;
+
+    $('loader').classList.remove('on');
+    $('resCmp').classList.add('on');
+    window.scrollTo({ top: $('resCmp').offsetTop - 20, behavior: 'smooth' });
+  } catch (e) {
+    showErr('Analysis failed: ' + e.message);
+    $('loader').classList.remove('on');
+  } finally {
+    $('btnCmpGo').disabled = false;
+  }
+}
+
+// ─────────────────────────────────────────────────────────────
+// INIT
+// ─────────────────────────────────────────────────────────────
+document.addEventListener('DOMContentLoaded', () => {
+  $('urlSingle').addEventListener('keydown', e => { if (e.key === 'Enter') runSingle(); });
+});
+</script>
+</body>
+</html>
